@@ -1,0 +1,11 @@
+export const FORTUNE_COLORS:Record<string,string>={'諭吉':'#eec54b','大吉':'#C73E3A','吉':'#9cca26','中吉':'#eaaa66','小吉':'#4cd3cf','凶':'#67278F','大凶':'#1A297E'};
+export const HEATMAP_LEVELS:Record<string,number>={'大凶':1,'凶':2,'小吉':3,'中吉':4,'吉':5,'大吉':6,'諭吉':7};
+export const HEATMAP_LIGHT=['','#d32f2f','#e57373','#aceebb','#78d593','#4ac26b','#2da44e','#116329'];
+export const HEATMAP_DARK=['','#ef9a9a','#e57373','#033a16','#196c2e','#2ea043','#42bb53','#56d364'];
+export const TIMEZONES=['UTC','Asia/Shanghai','Asia/Tokyo','Europe/London','Europe/Paris','America/New_York','America/Chicago','America/Los_Angeles'];
+const n=(f:string|null|undefined)=>String(f??'').replace(/\s+/g,'');
+export const getFortuneColor=(f:string|null|undefined)=>FORTUNE_COLORS[n(f)]??'#808080';
+export const getHeatmapColor=(f:string,dark=false)=>(dark?HEATMAP_DARK:HEATMAP_LIGHT)[HEATMAP_LEVELS[n(f)]??0]??'';
+const G=['諭吉','大吉','吉','中吉','小吉'],B=['凶','大凶'];
+export const drawLocally=()=>Math.random()<=0.8?G[Math.floor(Math.random()*5)]:B[Math.floor(Math.random()*2)];
+export const getDisplayAvatarUrl=(u:{use_qq_avatar:boolean;qq:number|null;avatar_url:string})=>u.use_qq_avatar&&u.qq?`https://q.qlogo.cn/g?b=qq&nk=${u.qq}&s=640`:(u.avatar_url||null);
