@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../stores/auth';
 import { api } from '../api/client';
 import { TIMEZONES } from '../utils/fortune';
-import type { UserUpdatePayload } from '../api/types';
+import type { UserMeProfile, UserUpdatePayload } from '../api/types';
 
 export default function SettingsView() {
   const { user, setUser, logout } = useAuth();
@@ -28,12 +28,11 @@ export default function SettingsView() {
             onError={e => { setErr(e); setMsg(''); }}
           />
         )}
-        {tab === 'password' && <PasswordForm onOk={() => { setMsg('密码已修改'); setErr(''); }} onErr={setErr} />}
+        {tab === 'password' && (
+          <PasswordForm onOk={() => { setMsg('密码已修改'); setErr(''); }} onErr={setErr} />
+        )}
         {tab === 'danger' && (
-          <DangerZone
-            onDeleted={async () => { await logout(); }}
-            onErr={setErr}
-          />
+          <DangerZone onDeleted={async () => { await logout(); }} onErr={setErr} />
         )}
 
         {msg && <div style={{ color: '#4caf50', marginTop: 12 }}>{msg}</div>}
@@ -44,7 +43,7 @@ export default function SettingsView() {
 }
 
 function ProfileForm({ onSaved, onError }: {
-  onSaved: (u: ReturnType<typeof useAuth.getState>['user']) => void;
+  onSaved: (u: UserMeProfile) => void;
   onError: (e: string) => void;
 }) {
   const { user } = useAuth();
