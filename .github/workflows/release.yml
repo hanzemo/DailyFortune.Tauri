@@ -69,17 +69,46 @@ jobs:
           cd src-tauri/target/release/bundle/appimage
           APPIMAGE=$(ls *.AppImage | head -1)
           echo "Processing: $APPIMAGE"
+          file "$APPIMAGE"
+          ls -la "$APPIMAGE"
 
-          # 解压 AppImage（不用 FUSE，直接用 unsquashfs）
-          OFFSET=$(grep -abo $'\x68\x73\x71\x73' "$APPIMAGE" | head -1 | cut -d: -f1)
-          echo "squashfs offset: $OFFSET"
-          tail -c +$((OFFSET+1)) "$APPIMAGE" > /tmp/app.squashfs
+          # 方式 1：直接对 AppImage 跑 unsquashfs（新版会自动找偏移）
           rm -rf /tmp/appimage-root
-          unsquashfs -q -d /tmp/appimage-root /tmp/app.squashfs
+          if unsquashfs -q -d /tmp/appimage-root "$APPIMAGE" 2>&1; then
+            echo "unsquashfs direct OK"
+          else
+            echo "Direct unsquashfs failed, trying manual offset scan..."
+
+            # 方式 2：暴力扫描所有 hsqs 出现位置，用 bytes_used 字段校验
+            OFFSET=""
+            for off in $(grep -abo $'\x68\x73\x71\x73' "$APPIMAGE" | cut -d: -f1); do
+              # squashfs superblock 结构：magic(4) + inodes(4) + mkfs_time(4) + block_size(4)
+              # + fragments(4) + compression(2) + block_log(2) + flags(2) + no_ids(2)
+              # + s_major(2) + s_minor(2) + root_inode(8) + bytes_used(8)
+              # bytes_used 在 superblock 偏移 +40 处，8 字节小端
+              BYTES_USED=$(dd if="$APPIMAGE" bs=1 skip=$((off+40)) count=8 2>/dev/null | od -An -tu8 | tr -d ' ')
+              FILE_SIZE=$(stat -c %s "$APPIMAGE")
+              echo "candidate offset=$off bytes_used=$BYTES_USED file_size=$FILE_SIZE"
+              if [ -n "$BYTES_USED" ] && [ "$BYTES_USED" -gt 1000000 ] && [ "$BYTES_USED" -le "$FILE_SIZE" ]; then
+                OFFSET="$off"
+                echo "  -> valid squashfs offset: $OFFSET (bytes_used=$BYTES_USED)"
+                break
+              fi
+            done
+
+            if [ -z "$OFFSET" ]; then
+              echo "FATAL: no valid squashfs offset found"
+              exit 1
+            fi
+
+            tail -c +$((OFFSET+1)) "$APPIMAGE" > /tmp/app.squashfs
+            unsquashfs -q -d /tmp/appimage-root /tmp/app.squashfs
+          fi
 
           # 移除与宿主 Mesa/Wayland 冲突的捆绑库
           cd /tmp/appimage-root
           mkdir -p disabled-libs
+          moved=0
           for pattern in \
             'usr/lib/libwayland-client.so*' \
             'usr/lib/libwayland-cursor.so*' \
@@ -92,29 +121,31 @@ jobs:
             'usr/lib/libgbm.so*' \
             'usr/lib/libdrm.so*'; do
             for f in $pattern; do
-              [ -e "$f" ] && mv "$f" disabled-libs/ && echo "  moved: $f"
+              if [ -e "$f" ]; then
+                mv "$f" disabled-libs/
+                echo "  moved: $f"
+                moved=$((moved+1))
+              fi
             done
           done
+          echo "Total moved: $moved"
 
           # 重新打包
           wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage \
             -O /tmp/appimagetool
           chmod +x /tmp/appimagetool
           cd /tmp
-          /tmp/appimagetool --appimage-extract-and-run /tmp/appimage-root "/tmp/DailyFortune-fixed.AppImage"
+          ARCH=x86_64 /tmp/appimagetool --appimage-extract-and-run /tmp/appimage-root /tmp/DailyFortune-fixed.AppImage
 
-          # 覆盖原产物
-          cp /tmp/DailyFortune-fixed.AppImage "DailyFortune-fixed.AppImage"
-
-          # 把修复后的 AppImage 移回 bundle 目录
+          # 移回 bundle 目录
           cd "$GITHUB_WORKSPACE/src-tauri/target/release/bundle/appimage"
-          mv "/tmp/DailyFortune-fixed.AppImage" ./
+          mv /tmp/DailyFortune-fixed.AppImage ./
+          chmod +x DailyFortune-fixed.AppImage
           ls -la *.AppImage
 
       - name: Upload fixed AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: DailyFortune-AppImage
-          path: |
-            src-tauri/target/release/bundle/appimage/DailyFortune-fixed.AppImage
+          path: src-tauri/target/release/bundle/appimage/DailyFortune-fixed.AppImage
           if-no-files-found: error
