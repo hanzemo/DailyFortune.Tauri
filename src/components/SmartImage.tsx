@@ -16,12 +16,21 @@ export default function SmartImage({ src, className, style, alt = '', fallback }
   useEffect(() => {
     setDataUrl(null);
     setFailed(false);
-    if (!src) return;
+    console.log('[SmartImage] src =', src);
+    if (!src) {
+      console.log('[SmartImage] src is empty, using fallback');
+      return;
+    }
     let cancelled = false;
     loadImageAsDataUrl(src).then(result => {
       if (cancelled) return;
-      if (result) setDataUrl(result);
-      else setFailed(true);
+      if (result) {
+        console.log('[SmartImage] loaded OK, length =', result.length);
+        setDataUrl(result);
+      } else {
+        console.log('[SmartImage] load failed, using fallback');
+        setFailed(true);
+      }
     });
     return () => {
       cancelled = true;
