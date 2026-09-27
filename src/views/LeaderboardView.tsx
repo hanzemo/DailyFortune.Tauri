@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useFortune } from '../stores/fortune';
 import type { LeaderboardPeriod } from '../api/types';
 import { getFortuneColor } from '../utils/fortune';
@@ -15,7 +16,7 @@ export default function LeaderboardView() {
 
   useEffect(() => {
     load('today');
-  }, []);
+  }, [load]);
 
   function switchPeriod(p: LeaderboardPeriod) {
     setPeriod(p);
@@ -58,7 +59,20 @@ export default function LeaderboardView() {
               </div>
             ) : (
               group.users.map((u, i) => (
-                <div key={u.username} className="lb-user">
+                <Link
+                  key={u.username}
+                  to={`/profile/${encodeURIComponent(u.username)}`}
+                  className="lb-user"
+                  style={{
+                    textDecoration: 'none',
+                    color: 'inherit',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '6px 0',
+                    borderBottom: '1px solid var(--border)',
+                  }}
+                >
                   <span>
                     <span style={{ color: 'var(--muted)', marginRight: 8, display: 'inline-block', width: 24 }}>
                       {i + 1}
@@ -68,7 +82,7 @@ export default function LeaderboardView() {
                   <span style={{ color: 'var(--muted)', fontSize: 12 }}>
                     @{u.username}
                   </span>
-                </div>
+                </Link>
               ))
             )}
           </div>
