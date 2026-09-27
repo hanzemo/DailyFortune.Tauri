@@ -4,6 +4,12 @@
   "description": "default capabilities",
   "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "http://186.241.81.212:8000/**" }
+      ]
+    }
   ]
 }
