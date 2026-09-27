@@ -13,7 +13,28 @@ function Nav() {
   const { user, isAuth, logout } = useAuth();
   const loc = useLocation();
   const bg = user?.todays_fortune ? getFortuneColor(user.todays_fortune) : '#2b2b2b';
-  if (!isAuth || !user) return null;
+
+  // 未登录：显示品牌 + 登录入口
+  if (!isAuth || !user) {
+    return (
+      <nav className="nav" style={{ background: bg }}>
+        <div className="nav-brand">DailyFortune</div>
+        <div className="nav-items" style={{ flex: 1 }} />
+        <Link
+          to="/login"
+          style={{
+            color: '#fff',
+            textDecoration: 'none',
+            padding: '6px 16px',
+            background: 'rgba(255,255,255,.2)',
+            borderRadius: 8,
+          }}
+        >
+          登录 / 注册
+        </Link>
+      </nav>
+    );
+  }
 
   const items = [
     { to: '/', t: '主页' },
@@ -31,7 +52,11 @@ function Nav() {
           <Link
             key={i.to}
             to={i.to}
-            className={loc.pathname === i.to ? 'active' : ''}
+            className={
+              loc.pathname === i.to || loc.pathname.startsWith(i.to + '/')
+                ? 'active'
+                : ''
+            }
           >
             {i.t}
           </Link>

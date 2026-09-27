@@ -27,12 +27,16 @@ pub fn run() {
         }
     }
 
+    let open_devtools = std::env::var("DF_DEVTOOLS").is_ok();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_http::init())
-        .setup(|app| {
-            use tauri::Manager;
-            if let Some(w) = app.get_webview_window("main") {
-                w.open_devtools();
+        .setup(move |app| {
+            if open_devtools {
+                use tauri::Manager;
+                if let Some(w) = app.get_webview_window("main") {
+                    w.open_devtools();
+                }
             }
             Ok(())
         })
