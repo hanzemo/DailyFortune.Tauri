@@ -4,6 +4,7 @@ import { useProfile } from '../stores/profile';
 import { useAuth } from '../stores/auth';
 import { formatDateOnly, parseBackendDate } from '../api/datetime';
 import { getDisplayAvatarUrl, getFortuneColor, getHeatmapColor } from '../utils/fortune';
+import SmartImage from '../components/SmartImage';
 
 export default function ProfileView() {
   const { username = '' } = useParams<{ username: string }>();
@@ -14,28 +15,29 @@ export default function ProfileView() {
 
   useEffect(() => {
     if (!username) return;
-    if (isSelf) return; // 自己用 auth store 里的数据
+    if (isSelf) return;
     loadUser(username);
-  }, [username, isSelf]);
+  }, [username, isSelf, loadUser]);
 
   if (loading) return <div className="countdown">加载中...</div>;
   if (!profile) return <div className="countdown">用户不存在</div>;
 
-  const avatar = getDisplayAvatarUrl(profile);
+  const avatarUrl = getDisplayAvatarUrl(profile);
   const fortuneColor = profile.todays_fortune ? getFortuneColor(profile.todays_fortune) : '#2b2b2b';
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto' }}>
       {profile.background_url && (
-        <img src={profile.background_url} className="banner" alt="" />
+        <SmartImage src={profile.background_url} className="banner" alt="" />
       )}
       <div className="card" style={{ marginTop: 16 }}>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          {avatar ? (
-            <img src={avatar} className="avatar" alt="" />
-          ) : (
-            <div className="avatar" />
-          )}
+          <SmartImage
+            src={avatarUrl}
+            className="avatar"
+            alt=""
+            fallback={<div className="avatar" />}
+          />
           <div style={{ flex: 1 }}>
             <h2 style={{ marginBottom: 4 }}>
               {profile.display_name || profile.username}
@@ -46,9 +48,7 @@ export default function ProfileView() {
             <div style={{ color: 'var(--muted)', fontSize: 13 }}>
               @{profile.username}
               {profile.status !== 'active' && (
-                <span style={{ color: '#ff6b6b', marginLeft: 8 }}>
-                  [{profile.status}]
-                </span>
+                <span style={{ color: '#ff6b6b', marginLeft: 8 }}>[{profile.status}]</span>
               )}
             </div>
             {profile.bio && (
